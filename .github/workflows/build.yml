@@ -11,8 +11,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    outputs:
-      firmware_name: can-bridge-firmware
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -26,14 +24,13 @@ jobs:
 
       - name: Compile Firmware
         id: compile
-        run: |
-          cd Software/CANBRIDGE-2port
-          make all
+        working-directory: Software/CANBRIDGE-2port/source
+        run: make all
       
       - name: Prepare Artifacts
         run: |
           mkdir -p artifacts
-          cp Software/CANBRIDGE-2port/build/can-bridge-firmware.hex artifacts/can-bridge-firmware.hex
+          cp Software/CANBRIDGE-2port/source/build/can-bridge-firmware.hex artifacts/can-bridge-firmware.hex
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
