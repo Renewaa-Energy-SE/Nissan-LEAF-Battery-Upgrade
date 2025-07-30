@@ -11,6 +11,20 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Define your firmware projects here.
+        # 'name' is used for the artifact name.
+        # 'path' is the directory with the Makefile.
+        # 'out_file' is the name of the compiled hex file (without extension).
+        include:
+          - name: can-bridge-2port
+            path: Software/CANBRIDGE-2port/source
+            out_file: can-bridge-firmware
+          # - name: can-gateway  # Example for a second firmware, uncomment and adapt
+          #   path: Software/CAN-Gateway/source
+          #   out_file: can-gateway-firmware
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,37 +36,32 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc-arm-none-eabi binutils-arm-none-eabi make
 
-      - name: Compile Firmware
-        id: compile
-        working-directory: Software/CANBRIDGE-2port/source
+      - name: Compile Firmware (${{ matrix.name }})
+        working-directory: ${{ matrix.path }}
         run: make all
-      
-      - name: Prepare Artifacts
-        run: |
-          mkdir -p artifacts
-          cp Software/CANBRIDGE-2port/source/build/can-bridge-firmware.hex artifacts/can-bridge-firmware.hex
+
+      - name: Convert HEX to BIN
+        run: arm-none-eabi-objcopy -I ihex -O binary ${{ matrix.path }}/build/${{ matrix.out_file }}.hex ${{ matrix.out_file }}.bin
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: firmware-artifact
-          path: artifacts/can-bridge-firmware.hex
+          name: ${{ matrix.name }}-firmware
+          path: ${{ matrix.out_file }}.bin
           if-no-files-found: error
-          retention-days: 7 # Keep artifacts for a week
+          retention-days: 7
 
   release:
     runs-on: ubuntu-latest
-    # Only run for pushes to the main branch
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
     permissions:
       contents: write # Required to create a release
     steps:
-      - name: Download firmware artifact
+      - name: Download all firmware artifacts
         uses: actions/download-artifact@v4
         with:
-          name: firmware-artifact
-          path: release-files
+          path: release-files # Downloads all artifacts from the 'build' job
 
       - name: Create and Upload Release
         uses: softprops/action-gh-release@v2
@@ -60,4 +69,4 @@ jobs:
           tag_name: release-${{ github.sha }}
           name: Release ${{ github.sha }}
           generate_release_notes: true
-          files: release-files/can-bridge-firmware.hex
+          files: release-files/*/*.bin # Upload all .bin files from the downloaded artifacts
