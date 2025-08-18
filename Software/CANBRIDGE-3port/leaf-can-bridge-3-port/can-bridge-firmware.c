@@ -196,14 +196,14 @@ void hw_init(void){
 	//Set and enable interrupts with round-robin
 	XMEGACLK_CCP_Write((void * ) &PMIC.CTRL, PMIC_RREN_bm | PMIC_LOLVLEN_bm | PMIC_HILVLEN_bm);//PMIC.CTRL = PMIC_LOLVLEN_bm | PMIC_MEDLVLEN_bm| PMIC_HILVLEN_bm;
 	
-	USB_Init(USB_OPT_RC32MCLKSRC | USB_OPT_BUSEVENT_PRILOW);
+	USB_Init();
 
 	wdt_enable(WDTO_15MS);
 	
 	sei();
 }
 
-void reset_state(){
+void reset_state(void){
 	charging_state = 0; //Reset charging state 
 	startup_counter_1DB = 0;
 	startup_counter_39X = 0;
