@@ -72,6 +72,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: release-files
+      - name: Rename firmware files
+        run: |
+          for dir in release-files/*; do
+            if [ -d "$dir" ]; then
+              mv "$dir"/*.bin "release-files/$(basename "$dir").bin"
+            fi
+          done
+
 
       - name: Create and Upload Release
         uses: softprops/action-gh-release@v2
@@ -79,4 +87,5 @@ jobs:
           tag_name: release-${{ github.sha }}
           name: Release ${{ github.sha }}
           generate_release_notes: true
-          files: release-files/*/*.bin
+          files: release-files/*.bin
+
