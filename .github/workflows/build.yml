@@ -13,17 +13,15 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # Define your firmware projects here.
-        # 'name' is used for the artifact name.
-        # 'path' is the directory with the Makefile.
-        # 'out_file' is the name of the compiled hex file (without extension).
         include:
           - name: can-bridge-2port
             path: Software/CANBRIDGE-2port/source
             out_file: can-bridge-firmware
-          # - name: can-gateway  # Example for a second firmware, uncomment and adapt
-          #   path: Software/CAN-Gateway/source
-          #   out_file: can-gateway-firmware
+            toolchain: arm
+          - name: can-bridge-3port
+            path: Software/CANBRIDGE-3port/leaf-can-bridge-3-port
+            out_file: can-bridge-firmware
+            toolchain: avr
 
     steps:
       - name: Checkout code
@@ -32,16 +30,28 @@ jobs:
           submodules: recursive
 
       - name: Install ARM GCC Toolchain
+        if: matrix.toolchain == 'arm'
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc-arm-none-eabi binutils-arm-none-eabi make
+
+      - name: Install AVR GCC Toolchain
+        if: matrix.toolchain == 'avr'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-avr avr-libc make
 
       - name: Compile Firmware (${{ matrix.name }})
         working-directory: ${{ matrix.path }}
         run: make all
 
-      - name: Convert HEX to BIN
+      - name: Convert HEX to BIN (ARM)
+        if: matrix.toolchain == 'arm'
         run: arm-none-eabi-objcopy -I ihex -O binary ${{ matrix.path }}/build/${{ matrix.out_file }}.hex ${{ matrix.out_file }}.bin
+
+      - name: Convert HEX to BIN (AVR)
+        if: matrix.toolchain == 'avr'
+        run: avr-objcopy -I ihex -O binary ${{ matrix.path }}/${{ matrix.out_file }}.hex ${{ matrix.out_file }}.bin
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
@@ -61,7 +71,7 @@ jobs:
       - name: Download all firmware artifacts
         uses: actions/download-artifact@v4
         with:
-          path: release-files # Downloads all artifacts from the 'build' job
+          path: release-files
 
       - name: Create and Upload Release
         uses: softprops/action-gh-release@v2
@@ -69,4 +79,4 @@ jobs:
           tag_name: release-${{ github.sha }}
           name: Release ${{ github.sha }}
           generate_release_notes: true
-          files: release-files/*/*.bin # Upload all .bin files from the downloaded artifacts
+          files: release-files/*/*.bin
