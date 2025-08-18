@@ -21,7 +21,7 @@ OBJCOPY = arm-none-eabi-objcopy
 SIZE = arm-none-eabi-size
 
 # Source files and paths
-VPATH = Src Drivers/STM32F1xx_HAL_Driver/Src MDK-ARM
+VPATH = Src Drivers/STM32F1xx_HAL_Driver/Src .
 
 C_SOURCES = \
   can-bridge-firmware.c \
@@ -64,7 +64,8 @@ INCLUDES = \
   -IDrivers/CMSIS/Include
 
 # Linker script and flags
-LDFLAGS = -mcpu=cortex-m3 -mthumb -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
+LDSCRIPT = STM32F105RCTx_FLASH.ld
+LDFLAGS = -mcpu=cortex-m3 -mthumb -T$(LDSCRIPT) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
 
 # Object files
 OBJECTS = $(addprefix $(BUILD_DIR)/,$(C_SOURCES:.c=.o))
